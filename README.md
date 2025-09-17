@@ -5,7 +5,7 @@
 ![CodeDuet Screenshot](https://raw.githubusercontent.com/CodeDuet/codeduet-cli/main/docs/assets/codeduet-screenshot.png)
 
 [![npm version](https://img.shields.io/npm/v/@codeduet-cli/codeduet-cli.svg)](https://www.npmjs.com/package/@codeduet-cli/codeduet-cli)
-[![License](https://img.shields.io/github/license/ksapp/codeduet-cli.svg)](./LICENSE)
+[![License](https://img.shields.io/github/license/CodeDuet/codeduet-cli.svg)](./LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Downloads](https://img.shields.io/npm/dm/@codeduet-cli/codeduet-cli.svg)](https://www.npmjs.com/package/@codeduet-cli/codeduet-cli)
 
