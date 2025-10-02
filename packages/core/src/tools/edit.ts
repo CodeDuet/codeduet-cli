@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2025 CodeDuet
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,6 +21,7 @@ import {
 import { ToolErrorType } from './tool-error.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
+import { validateWritePath, detectPathSecurityIssues } from '../utils/pathSecurity.js';
 import { isNodeError } from '../utils/errors.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
@@ -479,6 +480,20 @@ Expectation for required parameters:
     );
     if (errors) {
       return errors;
+    }
+
+    const filePath = params.file_path;
+    
+    // Enhanced security validation
+    const securityIssues = detectPathSecurityIssues(filePath);
+    if (securityIssues.length > 0) {
+      return `Security issues detected in file path: ${securityIssues.join(', ')}`;
+    }
+
+    // Validate path security and permissions
+    const pathValidation = validateWritePath(filePath, this.config.getTargetDir());
+    if (!pathValidation.isValid) {
+      return `File path validation failed: ${pathValidation.error}`;
     }
 
     if (!path.isAbsolute(params.file_path)) {

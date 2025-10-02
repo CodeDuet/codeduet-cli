@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="25" failures="0" errors="0" time="0.012324092">
+    <testsuite name="src/utils/pathSecurity.test.ts" timestamp="2025-10-02T23:32:42.621Z" hostname="Sapp-iMac.local" tests="25" failures="0" errors="0" skipped="0" time="0.012324092">
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect parent directory references" time="0.002709591">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect null bytes" time="0.001492705">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect home directory references" time="0.000198222">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect environment variable references" time="0.000197108">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect URL-encoded characters" time="0.000179829">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect hex-encoded characters" time="0.000213577">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should detect excessively long paths" time="0.0002352">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; detectPathSecurityIssues &gt; should return empty array for safe paths" time="0.000766382">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; validateAndSanitizePath &gt; should reject empty or invalid paths" time="0.000460371">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; validateAndSanitizePath &gt; should reject non-string paths" time="0.000178146">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; validateAndSanitizePath &gt; should reject paths with suspicious patterns" time="0.000229854">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; validateAndSanitizePath &gt; should reject paths with null bytes" time="0.000232039">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: ../../../etc/passwd" time="0.000228612">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: ..\..\..\windows\system32\config\sam" time="0.000101699">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: ./logs/../../../sensitive-file.txt" time="0.000098412">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: ~/secret.txt" time="0.000095448">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: $HOME/secret.txt" time="0.000094474">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: file%2E%2E/test.txt" time="0.000091487">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; path traversal prevention &gt; should reject malicious path: file\x2E\x2E/test.txt" time="0.000091297">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: /workspace/safe/file.txt" time="0.00015697">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: subdirectory/file.txt" time="0.000102043">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: ./safe-file.txt" time="0.0000965">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: file-with-dashes.txt" time="0.000096813">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: file_with_underscores.txt" time="0.000096278">
+        </testcase>
+        <testcase classname="src/utils/pathSecurity.test.ts" name="pathSecurity &gt; safe paths &gt; should accept safe path: file123.txt" time="0.00009598">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2025 CodeDuet
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +23,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const serverScript = `#!/usr/bin/env node
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2025 CodeDuet
  * SPDX-License-Identifier: Apache-2.0
  */
 

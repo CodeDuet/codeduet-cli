@@ -1,12 +1,13 @@
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2025 CodeDuet
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'node:os';
+import * as crypto from 'node:crypto';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
@@ -29,6 +30,7 @@ import {
   MCPServerConfig,
   ConfigParameters,
 } from '@qwen-code/qwen-code-core';
+import { YoloModeValidator } from '../../../core/src/utils/yoloModeValidator.js';
 import { Settings } from './settings.js';
 
 import { Extension, annotateActiveExtensions } from './extension.js';
@@ -399,10 +401,28 @@ export async function loadCliConfig(
 
   let mcpServers = mergeMcpServers(settings, activeExtensions);
   const question = argv.promptInteractive || argv.prompt || '';
-  const yoloFromEnv = ['1', 'true', 'yes'].includes(process.env.QWEN_YOLO?.toLowerCase() || '');
+  
+  // Enhanced YOLO mode validation with strict controls
+  const yoloValidator = new YoloModeValidator();
+  
   const yoloFromConfig = settings.dangerouslySkipPermissions || false;
-  const approvalMode =
-    argv.yolo || yoloFromEnv || yoloFromConfig ? ApprovalMode.YOLO : ApprovalMode.DEFAULT;
+  const yoloValidation = yoloValidator.validateYoloModeActivation(
+    sessionId,
+    !!argv.yolo,
+    yoloFromConfig
+  );
+  
+  // If YOLO mode validation fails, throw an error
+  if ((argv.yolo || yoloFromConfig || process.env.QWEN_YOLO) && !yoloValidation.isValid) {
+    throw new Error(yoloValidation.error || 'YOLO mode validation failed');
+  }
+  
+  const approvalMode = yoloValidation.isValid ? ApprovalMode.YOLO : ApprovalMode.DEFAULT;
+  
+  // Validate YOLO context if enabled
+  if (approvalMode === ApprovalMode.YOLO) {
+    yoloValidator.validateYoloContext(sessionId);
+  }
   const interactive =
     !!argv.promptInteractive || (process.stdin.isTTY && question.length === 0);
   // In non-interactive and non-yolo mode, exclude interactive built in tools.

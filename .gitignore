@@ -1,5 +1,5 @@
 # CodeDuet .gitignore
-
+.claude/
 # Build outputs
 dist/
 build/

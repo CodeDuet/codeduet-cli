@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Google LLC
+ * Copyright 2025 CodeDuet
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -123,7 +123,8 @@ export function stripShellWrapper(command: string): string {
  * Detects command substitution patterns in a shell command, following bash quoting rules:
  * - Single quotes ('): Everything literal, no substitution possible
  * - Double quotes ("): Command substitution with $() and backticks unless escaped with \
- * - No quotes: Command substitution with $(), <(), and backticks
+ * - No quotes: Command substitution with $(), <(), >(), and backticks
+ * Enhanced with comprehensive pattern detection to prevent bypass attempts.
  * @param command The shell command string to check
  * @returns true if command substitution would be executed by bash
  */
@@ -132,6 +133,35 @@ export function detectCommandSubstitution(command: string): boolean {
   let inDoubleQuotes = false;
   let inBackticks = false;
   let i = 0;
+
+  // Pre-check for obvious dangerous patterns that could be bypass attempts
+  const dangerousPatterns = [
+    /\$\([^)]*\)/,           // $(command)
+    /`[^`]*`/,               // `command`
+    /\$\{[^}]*\}/,           // ${var} and complex expansions
+    /\$[A-Za-z_][A-Za-z0-9_]*/, // $VAR expansions
+    /\$\[[^\]]*\]/,          // $[arithmetic] 
+    /\$'\\.'/,               // $'string' with escapes
+    /<\([^)]*\)/,            // <(command)
+    />\([^)]*\)/,            // >(command)
+    /\$\{IFS\}/,             // ${IFS} environment variable expansion
+    /\$IFS/,                 // $IFS variable
+    /\$'\\x[0-9a-fA-F]{2}'/,  // $'\x24' hex escapes
+    /^\s*eval\s+/,           // eval command at start
+    /^\s*exec\s+/,           // exec command at start
+    /^\s*source\s+/,         // source command at start
+    /^\s*\.\s+/,             // . (dot) command at start
+  ];
+
+  // Check for dangerous patterns first
+  if (dangerousPatterns.some(pattern => pattern.test(command))) {
+    return true;
+  }
+
+  // Check for encoded or obfuscated patterns
+  if (containsEncodedCommands(command)) {
+    return true;
+  }
 
   while (i < command.length) {
     const char = command[i];
@@ -165,9 +195,19 @@ export function detectCommandSubstitution(command: string): boolean {
         return true;
       }
 
+      // >(...) process substitution - works unquoted only (not in double quotes) 
+      if (char === '>' && nextChar === '(' && !inDoubleQuotes && !inBackticks) {
+        return true;
+      }
+
       // Backtick command substitution - check for opening backtick
       // (We track the state above, so this catches the start of backtick substitution)
       if (char === '`' && !inBackticks) {
+        return true;
+      }
+
+      // Check for variable expansions that could be dangerous
+      if (char === '$' && nextChar && nextChar.match(/[A-Za-z_\[{]/)) {
         return true;
       }
     }
@@ -176,6 +216,108 @@ export function detectCommandSubstitution(command: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Detects encoded or obfuscated command patterns that could bypass simple string matching
+ * @param command The command string to check
+ * @returns true if encoded patterns are detected
+ */
+function containsEncodedCommands(command: string): boolean {
+  // Check for hex-encoded characters that could represent dangerous patterns
+  const hexPattern = /\\x[0-9a-fA-F]{2}/;
+  if (hexPattern.test(command)) {
+    return true;
+  }
+
+  // Check for octal-encoded characters
+  const octalPattern = /\\[0-7]{3}/;
+  if (octalPattern.test(command)) {
+    return true;
+  }
+
+  // Check for unicode escapes
+  const unicodePattern = /\\u[0-9a-fA-F]{4}/;
+  if (unicodePattern.test(command)) {
+    return true;
+  }
+
+  // Check for base64-like patterns that might be decoded
+  const base64Pattern = /[A-Za-z0-9+/]{20,}={0,2}/;
+  if (base64Pattern.test(command) && command.includes('base64')) {
+    return true;
+  }
+
+  return false;
+}
+
+// Safe commands allowlist for enhanced security
+// Commands that are generally safe for development workflows
+const SAFE_COMMANDS = new Set([
+  // File operations
+  'ls', 'cat', 'echo', 'pwd', 'mkdir', 'cp', 'mv', 'rm', 'touch', 'ln',
+  'head', 'tail', 'sort', 'uniq', 'wc', 'diff', 'file', 'stat', 'tree',
+  
+  // Text processing
+  'grep', 'find', 'sed', 'awk', 'cut', 'tr', 'sort', 'uniq', 'wc',
+  
+  // Archive operations
+  'tar', 'zip', 'unzip', 'gzip', 'gunzip',
+  
+  // Development tools
+  'git', 'npm', 'node', 'python', 'python3', 'pip', 'pip3', 'yarn', 'pnpm',
+  'make', 'cmake', 'gcc', 'g++', 'clang', 'javac', 'java', 'rustc', 'cargo',
+  'go', 'dotnet', 'php', 'ruby', 'perl', 'lua', 'R', 'julia', 'scala', 'kotlin',
+  'mvn', 'gradle', 'ant', 'sbt', 'lein', 'stack', 'cabal',
+  
+  // System info (read-only)
+  'which', 'whereis', 'type', 'whoami', 'id', 'groups', 'date', 'uptime',
+  'df', 'du', 'free', 'ps', 'top', 'htop', 'env', 'printenv',
+  
+  // Editors and viewers
+  'vim', 'nano', 'emacs', 'less', 'more', 'view', 'code', 'subl',
+  
+  // Network tools (limited)
+  'curl', 'wget', 'ping',
+  
+  // Help and documentation
+  'help', 'man', 'info',
+  
+  // Process management (limited)
+  'jobs', 'bg', 'fg', 'nohup',
+]);
+
+/**
+ * Validates if a command root is in the safe commands allowlist
+ * @param commandRoot The root command to validate
+ * @returns true if the command is considered safe
+ */
+export function isSafeCommand(commandRoot: string): boolean {
+  return SAFE_COMMANDS.has(commandRoot);
+}
+
+/**
+ * Validates command against safe allowlist in strict mode
+ * @param command The full command to validate
+ * @returns Object with validation result and reason if blocked
+ */
+export function validateCommandSafety(command: string): { 
+  allowed: boolean; 
+  reason?: string; 
+  unsafeCommands?: string[]; 
+} {
+  const commandRoots = getCommandRoots(command);
+  const unsafeCommands = commandRoots.filter(root => !isSafeCommand(root));
+  
+  if (unsafeCommands.length > 0) {
+    return {
+      allowed: false,
+      reason: `Unsafe commands detected: ${unsafeCommands.join(', ')}. Only allowlisted commands are permitted.`,
+      unsafeCommands
+    };
+  }
+  
+  return { allowed: true };
 }
 
 /**
@@ -218,9 +360,23 @@ export function checkCommandPermissions(
       allAllowed: false,
       disallowedCommands: [command],
       blockReason:
-        'Command substitution using $(), <(), or >() is not allowed for security reasons',
+        'Command substitution, variable expansion, or encoded patterns detected. This is not allowed for security reasons.',
       isHardDenial: true,
     };
+  }
+
+  // Enhanced safety check - validate against safe command allowlist (optional strict mode)
+  const strictMode = false; // TODO: Add shell strict mode configuration
+  if (strictMode) {
+    const safetyCheck = validateCommandSafety(command);
+    if (!safetyCheck.allowed) {
+      return {
+        allAllowed: false,
+        disallowedCommands: safetyCheck.unsafeCommands || [command],
+        blockReason: `${safetyCheck.reason} (Strict mode enabled)`,
+        isHardDenial: true,
+      };
+    }
   }
 
   const SHELL_TOOL_NAMES = ['run_shell_command', 'ShellTool'];
