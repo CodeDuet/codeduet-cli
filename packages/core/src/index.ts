@@ -7,6 +7,9 @@
 // Export config
 export * from './config/config.js';
 
+// Export new provider system
+export * from './providers/index.js';
+
 // Export Core Logic
 export * from './core/client.js';
 export * from './core/contentGenerator.js';

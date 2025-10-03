@@ -1,65 +1,112 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="30" failures="0" errors="0" time="0.023702865">
-    <testsuite name="src/utils/credentialManager.test.ts" timestamp="2025-10-03T00:53:43.454Z" hostname="Sapp-iMac.local" tests="30" failures="0" errors="0" skipped="0" time="0.023702865">
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Singleton Pattern &gt; should return the same instance" time="0.002068572">
+<testsuites name="vitest tests" tests="15" failures="7" errors="0" time="0.050435941">
+    <testsuite name="src/config/ConfigManager.integration.test.ts" timestamp="2025-10-03T01:40:58.742Z" hostname="Sapp-iMac.local" tests="15" failures="7" errors="0" skipped="0" time="0.050435941">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Basic functionality &gt; should initialize without errors when no config files exist" time="0.006083867">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Environment Variable Fallback &gt; should get credential from environment variable when secure storage unavailable" time="0.00044652">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Basic functionality &gt; should return singleton instance" time="0.00088529">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Environment Variable Fallback &gt; should set credential in environment variable when secure storage unavailable" time="0.00028909">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Basic functionality &gt; should load settings from file when exists" time="0.004262436">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Environment Variable Fallback &gt; should delete credential from environment variable" time="0.000319135">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Basic functionality &gt; should handle JSON comments in settings files" time="0.002474183">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Environment Variable Fallback &gt; should return null for non-existent credential" time="0.000246029">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Basic functionality &gt; should resolve environment variables in settings" time="0.002441481">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should detect macOS keychain availability" time="0.003078978">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Settings persistence &gt; should save and retrieve settings" time="0.013617342">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/config/ConfigManager.integration.test.ts:132:43
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should get credential from keychain" time="0.000547213">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Settings persistence &gt; should create directory when saving settings" time="0.002056362">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/config/ConfigManager.integration.test.ts:146:42
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should set credential in keychain" time="0.000473822">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Authentication validation &gt; should validate supported auth methods" time="0.002144196">
+            <failure message="expected &apos;Invalid authentication method selecte…&apos; to be null" type="AssertionError">
+AssertionError: expected &apos;Invalid authentication method selecte…&apos; to be null
+
+- Expected: 
+null
+
++ Received: 
+&quot;Invalid authentication method selected. Please choose a supported provider.&quot;
+
+ ❯ src/config/ConfigManager.integration.test.ts:156:28
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should delete credential from keychain" time="0.000826785">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Authentication validation &gt; should validate Ollama with default URL" time="0.001601583">
+            <failure message="expected &apos;Invalid authentication method selecte…&apos; to be null" type="AssertionError">
+AssertionError: expected &apos;Invalid authentication method selecte…&apos; to be null
+
+- Expected: 
+null
+
++ Received: 
+&quot;Invalid authentication method selected. Please choose a supported provider.&quot;
+
+ ❯ src/config/ConfigManager.integration.test.ts:171:22
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should fallback to environment variable if keychain fails" time="0.000480338">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Authentication validation &gt; should validate LM Studio with default URL" time="0.001766864">
+            <failure message="expected &apos;Invalid authentication method selecte…&apos; to be null" type="AssertionError">
+AssertionError: expected &apos;Invalid authentication method selecte…&apos; to be null
+
+- Expected: 
+null
+
++ Received: 
+&quot;Invalid authentication method selected. Please choose a supported provider.&quot;
+
+ ❯ src/config/ConfigManager.integration.test.ts:178:22
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; macOS Keychain Storage &gt; should return correct storage type" time="0.000646154">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Authentication validation &gt; should fail with invalid auth method" time="0.001208309">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Windows Credential Manager Storage &gt; should detect Windows credential manager availability" time="0.000713401">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Error handling &gt; should throw error when accessing settings before initialization" time="0.00159345">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Windows Credential Manager Storage &gt; should set credential in Windows credential manager" time="0.000545087">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Error handling &gt; should handle malformed JSON gracefully" time="0.002436294">
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Windows Credential Manager Storage &gt; should delete credential from Windows credential manager" time="0.000684138">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Environment file loading &gt; should load .env file from workspace" time="0.002452543">
+            <failure message="expected undefined to be &apos;workspace-value&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected undefined to be &apos;workspace-value&apos; // Object.is equality
+
+- Expected: 
+&quot;workspace-value&quot;
+
++ Received: 
+undefined
+
+ ❯ src/config/ConfigManager.integration.test.ts:216:36
+            </failure>
         </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Windows Credential Manager Storage &gt; should return correct storage type" time="0.000821423">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Linux Secret Service Storage &gt; should detect Linux secret service availability" time="0.000821534">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Linux Secret Service Storage &gt; should get credential from secret service" time="0.000731445">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Linux Secret Service Storage &gt; should set credential in secret service" time="0.001277658">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Linux Secret Service Storage &gt; should delete credential from secret service" time="0.000572255">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Linux Secret Service Storage &gt; should return correct storage type" time="0.000293558">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Migration from Environment Variables &gt; should migrate credential from environment to secure storage" time="0.000477318">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Migration from Environment Variables &gt; should not migrate if no environment variable exists" time="0.000245859">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Migration from Environment Variables &gt; should keep environment variable if secure storage fails" time="0.000625462">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Error Handling &gt; should handle unavailable secure storage gracefully" time="0.000318075">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Error Handling &gt; should fallback to environment variables when secure storage operations fail" time="0.000313978">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Error Handling &gt; should not throw when deleting non-existent credentials" time="0.00123141">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Security Considerations &gt; should not log credential values in commands" time="0.000559233">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Security Considerations &gt; should handle special characters in credentials safely" time="0.000397696">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Security Considerations &gt; should use stdio pipes to prevent credential exposure" time="0.000860539">
-        </testcase>
-        <testcase classname="src/utils/credentialManager.test.ts" name="SecureCredentialManager &gt; Integration with Global Instance &gt; should export a singleton instance" time="0.000473016">
+        <testcase classname="src/config/ConfigManager.integration.test.ts" name="ConfigManager Integration &gt; Environment file loading &gt; should prefer qwen-specific .env files" time="0.003129328">
+            <failure message="expected undefined to be &apos;qwen-value&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected undefined to be &apos;qwen-value&apos; // Object.is equality
+
+- Expected: 
+&quot;qwen-value&quot;
+
++ Received: 
+undefined
+
+ ❯ src/config/ConfigManager.integration.test.ts:235:36
+            </failure>
         </testcase>
     </testsuite>
 </testsuites>

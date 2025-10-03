@@ -55,6 +55,12 @@ import { IdeConnectionEvent, IdeConnectionType } from '../telemetry/types.js';
 export type { MCPOAuthConfig };
 import { WorkspaceContext } from '../utils/workspaceContext.js';
 
+// Re-export new unified configuration system
+export { ConfigManager, SettingScope } from './ConfigManager.js';
+export { ConfigFactory } from './ConfigFactory.js';
+export type { ConfigSettings, ConfigError } from './ConfigManager.js';
+export type { CliArgumentsInterface } from './ConfigFactory.js';
+
 export enum ApprovalMode {
   DEFAULT = 'default',
   AUTO_EDIT = 'autoEdit',
