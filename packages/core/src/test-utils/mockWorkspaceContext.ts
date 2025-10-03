@@ -6,6 +6,7 @@
 
 import { vi } from 'vitest';
 import { WorkspaceContext } from '../utils/workspaceContext.js';
+import * as fs from 'fs';
 
 /**
  * Creates a mock WorkspaceContext for testing
@@ -17,16 +18,25 @@ export function createMockWorkspaceContext(
   rootDir: string,
   additionalDirs: string[] = [],
 ): WorkspaceContext {
-  const allDirs = [rootDir, ...additionalDirs];
+  // Resolve symlinks in directories for consistent path comparison
+  const resolvedRootDir = fs.existsSync(rootDir) ? fs.realpathSync(rootDir) : rootDir;
+  const resolvedAdditionalDirs = additionalDirs.map(dir => 
+    fs.existsSync(dir) ? fs.realpathSync(dir) : dir
+  );
+  const allDirs = [resolvedRootDir, ...resolvedAdditionalDirs];
 
   const mockWorkspaceContext = {
     addDirectory: vi.fn(),
     getDirectories: vi.fn().mockReturnValue(allDirs),
     isPathWithinWorkspace: vi
       .fn()
-      .mockImplementation((path: string) =>
-        allDirs.some((dir) => path.startsWith(dir)),
-      ),
+      .mockImplementation((path: string) => {
+        // Resolve the input path if it exists
+        const resolvedPath = fs.existsSync(path) ? fs.realpathSync(path) : path;
+        return allDirs.some((dir) => 
+          resolvedPath.startsWith(dir + require('path').sep) || resolvedPath === dir
+        );
+      }),
   } as unknown as WorkspaceContext;
 
   return mockWorkspaceContext;

@@ -102,6 +102,20 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
   }
 
   validateToolParams(params: ShellToolParams): string | null {
+    // Enhanced validation with security checks
+    const validationResult = SchemaValidator.validateWithSecurity(
+      this.schema.parametersJsonSchema,
+      params,
+      {
+        toolName: ShellTool.Name,
+        parameterName: 'params',
+      },
+    );
+
+    if (!validationResult.isValid) {
+      return validationResult.error || 'Validation failed';
+    }
+
     const commandCheck = isCommandAllowed(params.command, this.config);
     if (!commandCheck.allowed) {
       if (!commandCheck.reason) {
@@ -112,13 +126,7 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
       }
       return commandCheck.reason;
     }
-    const errors = SchemaValidator.validate(
-      this.schema.parametersJsonSchema,
-      params,
-    );
-    if (errors) {
-      return errors;
-    }
+    
     if (!params.command.trim()) {
       return 'Command cannot be empty.';
     }

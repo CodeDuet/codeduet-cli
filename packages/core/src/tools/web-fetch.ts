@@ -125,22 +125,37 @@ ${textContent}
     }
   }
 
-  validateParams(params: WebFetchToolParams): string | null {
-    const errors = SchemaValidator.validate(
+  validateToolParams(params: WebFetchToolParams): string | null {
+    // Enhanced validation with security checks
+    const validationResult = SchemaValidator.validateWithSecurity(
       this.schema.parametersJsonSchema,
       params,
+      {
+        toolName: WebFetchTool.Name,
+        parameterName: 'params',
+      },
     );
-    if (errors) {
-      return errors;
+
+    if (!validationResult.isValid) {
+      return validationResult.error || 'Validation failed';
     }
+
+    // URL-specific validation
+    const urlValidation = SchemaValidator.validateUrl(
+      params.url,
+      {
+        toolName: WebFetchTool.Name,
+        parameterName: 'url',
+      },
+      ['http', 'https'], // Only allow HTTP/HTTPS
+    );
+
+    if (!urlValidation.isValid) {
+      return urlValidation.error || 'Invalid URL';
+    }
+
     if (!params.url || params.url.trim() === '') {
       return "The 'url' parameter cannot be empty.";
-    }
-    if (
-      !params.url.startsWith('http://') &&
-      !params.url.startsWith('https://')
-    ) {
-      return "The 'url' must be a valid URL starting with http:// or https://.";
     }
     if (!params.prompt || params.prompt.trim() === '') {
       return "The 'prompt' parameter cannot be empty.";

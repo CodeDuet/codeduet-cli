@@ -6,8 +6,36 @@
 
 import { AuthType } from '@qwen-code/qwen-code-core';
 import { loadEnvironment } from './settings.js';
+import { credentialManager } from '@qwen-code/qwen-code-core/utils/credentialManager.js';
 
-export const validateAuthMethod = (authMethod: string): string | null => {
+/**
+ * Secure credential helper functions
+ */
+export const getSecureCredential = async (key: string): Promise<string | null> => {
+  return await credentialManager.getCredential(key);
+};
+
+export const setSecureCredential = async (key: string, value: string): Promise<void> => {
+  await credentialManager.setCredential(key, value);
+};
+
+export const deleteSecureCredential = async (key: string): Promise<void> => {
+  await credentialManager.deleteCredential(key);
+};
+
+export const isSecureStorageAvailable = async (): Promise<boolean> => {
+  return await credentialManager.isSecureStorageAvailable();
+};
+
+export const getStorageType = (): string => {
+  return credentialManager.getStorageType();
+};
+
+export const migrateCredentialFromEnvironment = async (key: string): Promise<boolean> => {
+  return await credentialManager.migrateFromEnvironment(key);
+};
+
+export const validateAuthMethod = async (authMethod: string): Promise<string | null> => {
   loadEnvironment();
   if (
     authMethod === AuthType.LOGIN_WITH_GOOGLE ||
@@ -17,8 +45,9 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   }
 
   if (authMethod === AuthType.USE_GEMINI) {
-    if (!process.env.GEMINI_API_KEY) {
-      return 'GEMINI_API_KEY environment variable not found. Add that to your environment and try again (no reload needed if using .env)!';
+    const geminiKey = await getSecureCredential('GEMINI_API_KEY');
+    if (!geminiKey) {
+      return 'GEMINI_API_KEY is required. Please add it to your secure credential storage or .env file.';
     }
     return null;
   }
@@ -26,21 +55,22 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   if (authMethod === AuthType.USE_VERTEX_AI) {
     const hasVertexProjectLocationConfig =
       !!process.env.GOOGLE_CLOUD_PROJECT && !!process.env.GOOGLE_CLOUD_LOCATION;
-    const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
-    if (!hasVertexProjectLocationConfig && !hasGoogleApiKey) {
+    const googleApiKey = await getSecureCredential('GOOGLE_API_KEY');
+    if (!hasVertexProjectLocationConfig && !googleApiKey) {
       return (
-        'When using Vertex AI, you must specify either:\n' +
-        '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.\n' +
-        '• GOOGLE_API_KEY environment variable (if using express mode).\n' +
-        'Update your environment and try again (no reload needed if using .env)!'
+        'Vertex AI requires one of the following configurations:\n' +
+        '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION for standard mode\n' +
+        '• GOOGLE_API_KEY for express mode\n' +
+        'Please add the required credentials to your secure storage or .env file.'
       );
     }
     return null;
   }
 
   if (authMethod === AuthType.USE_OPENAI) {
-    if (!process.env.OPENAI_API_KEY) {
-      return 'OPENAI_API_KEY environment variable not found. You can enter it interactively or add it to your .env file.';
+    const openaiKey = await getSecureCredential('OPENAI_API_KEY');
+    if (!openaiKey) {
+      return 'OPENAI_API_KEY is required. Please add it to your secure credential storage or .env file.';
     }
     return null;
   }
@@ -59,7 +89,7 @@ export const validateAuthMethod = (authMethod: string): string | null => {
       new URL(ollamaUrl);
       return null;
     } catch {
-      return 'Invalid OLLAMA_BASE_URL. Please provide a valid URL (default: http://localhost:11434)';
+      return 'OLLAMA_BASE_URL must be a valid URL. Default: http://localhost:11434';
     }
   }
 
@@ -70,41 +100,43 @@ export const validateAuthMethod = (authMethod: string): string | null => {
       new URL(lmStudioUrl);
       return null;
     } catch {
-      return 'Invalid LM_STUDIO_BASE_URL. Please provide a valid URL (default: http://localhost:1234)';
+      return 'LM_STUDIO_BASE_URL must be a valid URL. Default: http://localhost:1234';
     }
   }
 
   if (authMethod === AuthType.USE_RUNPOD) {
-    if (!process.env.RUNPOD_API_KEY) {
-      return 'RUNPOD_API_KEY environment variable not found. Add that to your environment and try again!';
+    const runpodKey = await getSecureCredential('RUNPOD_API_KEY');
+    if (!runpodKey) {
+      return 'RUNPOD_API_KEY is required. Please add it to your secure credential storage or .env file.';
     }
-    if (!process.env.RUNPOD_BASE_URL) {
-      return 'RUNPOD_BASE_URL environment variable not found. Add your RunPod endpoint URL and try again!';
+    const runpodUrl = await getSecureCredential('RUNPOD_BASE_URL') || process.env.RUNPOD_BASE_URL;
+    if (!runpodUrl) {
+      return 'RUNPOD_BASE_URL is required. Please add your RunPod endpoint URL to your secure storage or .env file.';
     }
     try {
-      new URL(process.env.RUNPOD_BASE_URL);
+      new URL(runpodUrl);
       return null;
     } catch {
-      return 'Invalid RUNPOD_BASE_URL. Please provide a valid URL';
+      return 'RUNPOD_BASE_URL must be a valid URL. Please check your endpoint URL format.';
     }
   }
 
-  return 'Invalid auth method selected.';
+  return 'Invalid authentication method selected. Please choose a supported provider.';
 };
 
-export const setOpenAIApiKey = (apiKey: string): void => {
-  process.env.OPENAI_API_KEY = apiKey;
+export const setOpenAIApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('OPENAI_API_KEY', apiKey);
 };
 
-export const setOpenAIBaseUrl = (baseUrl: string): void => {
-  process.env.OPENAI_BASE_URL = baseUrl;
+export const setOpenAIBaseUrl = async (baseUrl: string): Promise<void> => {
+  await setSecureCredential('OPENAI_BASE_URL', baseUrl);
 };
 
-export const setOpenAIModel = (model: string): void => {
-  process.env.OPENAI_MODEL = model;
+export const setOpenAIModel = async (model: string): Promise<void> => {
+  await setSecureCredential('OPENAI_MODEL', model);
 };
 
-// Ollama configuration
+// Ollama configuration (URLs stored in env, no sensitive data)
 export const setOllamaBaseUrl = (baseUrl: string): void => {
   process.env.OLLAMA_BASE_URL = baseUrl;
 };
@@ -113,7 +145,7 @@ export const setOllamaModel = (model: string): void => {
   process.env.OLLAMA_MODEL = model;
 };
 
-// LM Studio configuration
+// LM Studio configuration (URLs stored in env, no sensitive data)
 export const setLmStudioBaseUrl = (baseUrl: string): void => {
   process.env.LM_STUDIO_BASE_URL = baseUrl;
 };
@@ -122,15 +154,39 @@ export const setLmStudioModel = (model: string): void => {
   process.env.LM_STUDIO_MODEL = model;
 };
 
-// RunPod configuration
-export const setRunPodApiKey = (apiKey: string): void => {
-  process.env.RUNPOD_API_KEY = apiKey;
+// RunPod configuration (API keys in secure storage, URLs can be in env)
+export const setRunPodApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('RUNPOD_API_KEY', apiKey);
 };
 
-export const setRunPodBaseUrl = (baseUrl: string): void => {
-  process.env.RUNPOD_BASE_URL = baseUrl;
+export const setRunPodBaseUrl = async (baseUrl: string): Promise<void> => {
+  await setSecureCredential('RUNPOD_BASE_URL', baseUrl);
 };
 
-export const setRunPodModel = (model: string): void => {
-  process.env.RUNPOD_MODEL = model;
+export const setRunPodModel = async (model: string): Promise<void> => {
+  await setSecureCredential('RUNPOD_MODEL', model);
+};
+
+// Gemini configuration
+export const setGeminiApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('GEMINI_API_KEY', apiKey);
+};
+
+// Google API configuration  
+export const setGoogleApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('GOOGLE_API_KEY', apiKey);
+};
+
+// Anthropic configuration
+export const setAnthropicApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('ANTHROPIC_API_KEY', apiKey);
+};
+
+// xAI Grok configuration
+export const setGrokApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('GROK_API_KEY', apiKey);
+};
+
+export const setXaiApiKey = async (apiKey: string): Promise<void> => {
+  await setSecureCredential('XAI_API_KEY', apiKey);
 };

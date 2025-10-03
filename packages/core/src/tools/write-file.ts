@@ -103,12 +103,18 @@ export class WriteFileTool
   }
 
   validateToolParams(params: WriteFileToolParams): string | null {
-    const errors = SchemaValidator.validate(
+    // Enhanced validation with security checks
+    const validationResult = SchemaValidator.validateWithSecurity(
       this.schema.parametersJsonSchema,
       params,
+      {
+        toolName: WriteFileTool.Name,
+        parameterName: 'params',
+      },
     );
-    if (errors) {
-      return errors;
+
+    if (!validationResult.isValid) {
+      return validationResult.error || 'Validation failed';
     }
 
     const filePath = params.file_path;
@@ -133,6 +139,21 @@ export class WriteFileTool
     if (!workspaceContext.isPathWithinWorkspace(filePath)) {
       const directories = workspaceContext.getDirectories();
       return `File path must be within one of the workspace directories: ${directories.join(', ')}`;
+    }
+
+    // File content validation with enhanced security
+    const mimeType = getSpecificMimeType(filePath);
+    const contentValidation = SchemaValidator.validateFileContent(
+      params.content,
+      mimeType,
+      {
+        toolName: WriteFileTool.Name,
+        parameterName: 'content',
+      },
+    );
+
+    if (!contentValidation.isValid) {
+      return contentValidation.error || 'File content validation failed';
     }
 
     try {

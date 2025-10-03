@@ -122,4 +122,54 @@ describe('pathSecurity', () => {
       });
     });
   });
+
+  describe('advanced path traversal tests', () => {
+    it('should detect Unicode path traversal attempts', () => {
+      const issues = detectPathSecurityIssues('/test/\u002e\u002e/etc/passwd');
+      expect(issues.length).toBeGreaterThan(0);
+    });
+
+    it('should detect mixed encoding attacks', () => {
+      const issues = detectPathSecurityIssues('/test/%2e%2e%2f..%2fetc%2fpasswd');
+      expect(issues).toContain('Contains URL-encoded characters');
+    });
+
+    it('should detect double encoding attempts', () => {
+      const issues = detectPathSecurityIssues('/test/%252e%252e%252f');
+      expect(issues).toContain('Contains URL-encoded characters');
+    });
+
+    it('should detect backslash path traversal (Windows style)', () => {
+      const issues = detectPathSecurityIssues('..\\..\\windows\\system32');
+      expect(issues).toContain('Contains parent directory references (..)'); 
+    });
+
+    it('should detect shell injection attempts in paths', () => {
+      const issues = detectPathSecurityIssues('/test/$(whoami).txt');
+      expect(issues).toContain('Contains environment variable references');
+    });
+
+    it('should detect extremely long paths (DoS attempt)', () => {
+      const longPath = '/test/' + 'a'.repeat(5000) + '.txt';
+      const issues = detectPathSecurityIssues(longPath);
+      expect(issues).toContain('Path length exceeds safe limit (4096 characters)');
+    });
+
+    it('should detect control character injection', () => {
+      const pathWithControlChars = '/test/file\x00\x01\x1f.txt';
+      const issues = detectPathSecurityIssues(pathWithControlChars);
+      expect(issues).toContain('Contains control characters');
+    });
+  });
+
+  describe('real path resolution security', () => {
+    it('should reject paths outside workspace using real path resolution', () => {
+      const testDir = path.join(os.tmpdir(), 'pathsecurity-test-' + Date.now());
+      const outsidePath = '/etc/passwd';
+      
+      const result = validateAndSanitizePath(outsidePath, testDir);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('outside workspace');
+    });
+  });
 });

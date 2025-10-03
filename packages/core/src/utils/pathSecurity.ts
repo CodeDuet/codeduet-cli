@@ -51,7 +51,7 @@ export function validateAndSanitizePath(
       /^\.\.[\\/]/,          // ../ or ..\ at start
       /^\.\.$/,              // Just ".."
       /~[\\/]/,              // Home directory references
-      /\$[A-Za-z_]/,         // Environment variable references
+      /\$[\({]?\w+[\)}]?/,   // Environment variable references
       /%[0-9a-fA-F]{2}/,     // URL encoded characters
       /\\x[0-9a-fA-F]{2}/,   // Hex encoded characters
     ];
@@ -66,7 +66,14 @@ export function validateAndSanitizePath(
     }
 
     // Step 4: Resolve and canonicalize paths
-    const resolvedWorkspace = fs.realpathSync(workspaceDir);
+    let resolvedWorkspace: string;
+    try {
+      resolvedWorkspace = fs.realpathSync(workspaceDir);
+    } catch (error) {
+      // If workspace doesn't exist yet, use normalized path
+      resolvedWorkspace = path.resolve(workspaceDir);
+    }
+    
     const resolvedFilePath = path.resolve(workspaceDir, filePath);
 
     // Step 5: Check if resolved path is within workspace
@@ -269,7 +276,7 @@ export function detectPathSecurityIssues(filePath: string): string[] {
     issues.push('Contains home directory reference (~)');
   }
 
-  if (/\$[A-Za-z_]/.test(filePath)) {
+  if (/\$[\({]?\w+[\)}]?/.test(filePath)) {
     issues.push('Contains environment variable references');
   }
 

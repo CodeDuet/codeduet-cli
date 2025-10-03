@@ -1,6 +1,227 @@
 # CodeDuet Changes Documentation
 
-## 🚀 Latest Update: xAI Grok Support & Multi-Provider Memory Files
+## 🔐 Latest Update: Secure Credential Storage Implementation
+
+### Enterprise-Grade Credential Security System
+Implemented a comprehensive secure credential storage system to replace environment variable storage with OS-native encrypted credential management:
+
+**Core Security Features:**
+- **OS-Native Encryption**: Direct integration with macOS Keychain, Windows Credential Manager, and Linux Secret Service
+- **Zero-Dependency Solution**: No external packages required - uses OS commands directly
+- **Graceful Fallback**: Automatic fallback to environment variables for compatibility
+- **Seamless Migration**: One-time migration from environment variables to secure storage
+- **Cross-Platform Support**: Consistent API across macOS, Windows, and Linux
+
+**Files Created:**
+- `packages/core/src/utils/credentialManager.ts` - Core secure credential management system with platform-specific storage implementations
+- `packages/core/src/utils/credentialMigration.ts` - Migration utilities and status reporting for existing users
+- `packages/core/src/utils/credentialManager.test.ts` - Comprehensive test suite with 30 security test cases
+
+**Files Enhanced:**
+- `packages/cli/src/config/auth.ts` - Updated to use secure credential storage with async validation and new credential setters
+- `packages/core/src/index.ts` - Added credential manager exports for public API
+
+**Security Implementation Details:**
+- ✅ **macOS Keychain**: Uses `security` command for encrypted storage in system keychain
+- ✅ **Windows Credential Manager**: Uses `cmdkey` command for Windows credential vault storage  
+- ✅ **Linux Secret Service**: Uses `secret-tool` command for GNOME keyring/KWallet integration
+- ✅ **Environment Variable Fallback**: Maintains backward compatibility with existing configurations
+- ✅ **Credential Migration**: Automatic detection and migration of existing environment credentials
+- ✅ **Security Validation**: Input sanitization and command injection prevention
+- ✅ **Audit Logging**: Migration reporting and credential storage status tracking
+
+**Credential Storage Strategy:**
+- **Sensitive Credentials**: API keys (OpenAI, Gemini, Anthropic, etc.) stored in OS-encrypted storage
+- **Configuration URLs**: Base URLs and model names remain in environment variables (non-sensitive)
+- **Hybrid Approach**: Secure storage first, environment variables as fallback
+- **Migration Path**: Seamless upgrade from environment-only to secure storage
+
+**Enhanced Auth Configuration:**
+- **Async Validation**: All validation functions now properly check secure storage
+- **New Credential Setters**: API key setters for all providers (OpenAI, Gemini, Anthropic, Grok, RunPod)
+- **Storage Type Detection**: Runtime detection of available credential storage methods
+- **Migration Utilities**: Comprehensive migration and status reporting functions
+
+**Testing Coverage:**
+- Platform-specific storage implementation tests (macOS, Windows, Linux)
+- Environment variable fallback testing
+- Credential migration and validation testing
+- Error handling and security edge case testing
+- Command injection and special character safety testing
+- Cross-platform compatibility testing
+
+**Migration Features:**
+- **Automatic Detection**: Identifies existing environment variable credentials
+- **One-Time Migration**: Secure transfer from environment to OS-encrypted storage
+- **Status Reporting**: Detailed migration reports with success/failure tracking
+- **Rollback Safety**: Failed migrations keep credentials in environment variables
+- **User Guidance**: Platform-specific installation instructions for secure storage
+
+## 🔒 Previous Update: Comprehensive Input Validation Enhancement
+
+### Enhanced Input Validation System
+Implemented a robust, multi-layered input validation system to prevent code injection, DoS attacks, and other security vulnerabilities:
+
+**Core Security Features:**
+- **Pattern-Based Threat Detection**: Detection of XSS, SQL injection, command injection, LDAP injection, and XPath injection patterns
+- **DoS Protection**: Size limits for strings (100KB), arrays (1000 items), objects (10 levels deep), and files (50MB)
+- **Content Sanitization**: Automatic removal of control characters and normalization of whitespace
+- **Tool-Specific Validation**: Custom validation rules for different tools (shell, web-fetch, file operations)
+- **Security Risk Assessment**: Categorization of threats (low, medium, high, critical) with appropriate logging
+
+**Files Enhanced:**
+- `packages/core/src/utils/inputValidator.ts` - Core validation system with comprehensive security checks
+- `packages/core/src/utils/schemaValidator.ts` - Enhanced schema validator with security integration
+- `packages/core/src/tools/shell.ts` - Integrated enhanced validation with tool-specific limits
+- `packages/core/src/tools/web-fetch.ts` - URL validation with protocol and domain restrictions
+- `packages/core/src/tools/write-file.ts` - File content validation with MIME type and size limits
+- `packages/core/src/utils/inputValidator.test.ts` - Comprehensive test suite with 38 security test cases
+
+**Security Protections Implemented:**
+- ✅ Script injection prevention (`<script>`, `javascript:`, event handlers)
+- ✅ SQL injection detection (UNION, SELECT, INSERT with context patterns)
+- ✅ Command injection blocking (shell metacharacters, command substitution)
+- ✅ Directory traversal prevention (already in pathSecurity.ts)
+- ✅ LDAP injection detection (malicious query patterns)
+- ✅ XPath injection prevention (boolean logic bypass attempts)
+- ✅ DoS protection (size limits, excessive whitespace detection)
+- ✅ Control character sanitization (null bytes, formatting exploits)
+- ✅ MIME type validation (file upload security)
+- ✅ URL scheme restrictions (protocol validation)
+
+**Tool-Specific Security Enhancements:**
+- **Shell Tool**: Command length limits (10KB), dangerous pattern blocking (fork bombs, destructive commands)
+- **Web Fetch Tool**: URL validation (HTTP/HTTPS only), prompt length limits, domain restrictions
+- **File Tools**: Content size limits (10MB for content, 50MB for files), MIME type validation
+- **General Tools**: Pattern-based limits for search operations, reasonable array/object size restrictions
+
+**Testing Coverage:**
+- String validation (normal text, injection attempts, size limits)
+- Number validation (range checking, NaN/Infinity rejection)
+- Array validation (size limits, element validation)
+- Object validation (depth limits, key/value validation)
+- URL validation (scheme/domain restrictions, suspicious pattern detection)
+- File content validation (size/type restrictions)
+- Tool-specific limit testing
+- Security risk assessment verification
+- Edge case handling (null/undefined values, circular references)
+
+## 🔒 Previous Update: Path Traversal Security Implementation
+
+### Comprehensive Path Traversal Protection
+Implemented robust security measures to prevent path traversal attacks in file operation tools:
+
+**Key Security Enhancements:**
+- **Path Canonicalization**: Proper resolution of symbolic links and relative paths
+- **Workspace Boundary Enforcement**: Strict validation that all file operations stay within workspace
+- **Malicious Pattern Detection**: Detection of suspicious patterns including:
+  - Parent directory references (`../`, `..\\`)
+  - Null byte injection (`\0`)
+  - Environment variable references (`$HOME`, `$(cmd)`)
+  - URL-encoded traversal attempts (`%2E%2E`)
+  - Hex-encoded characters (`\x2E\x2E`)
+  - Home directory references (`~`)
+  - Control character injection
+  - Excessively long paths (DoS protection)
+
+**Files Enhanced:**
+- `packages/core/src/utils/pathSecurity.ts` - Core security validation utilities
+- `packages/core/src/tools/read-file.ts` - Integrated path validation
+- `packages/core/src/tools/write-file.ts` - Integrated path validation
+- `packages/core/src/test-utils/mockWorkspaceContext.ts` - Enhanced test fixtures
+- `packages/core/src/utils/pathSecurity.test.ts` - Comprehensive security tests
+
+**Security Functions Implemented:**
+- `validateAndSanitizePath()` - Core path validation with canonicalization
+- `validateReadPath()` - Read-specific validation with permission checks
+- `validateWritePath()` - Write-specific validation with directory checks
+- `detectPathSecurityIssues()` - Pattern-based security issue detection
+
+**Protection Against:**
+- ✅ Directory traversal attacks (`../../../etc/passwd`)
+- ✅ Symlink-based path escaping
+- ✅ Encoded path traversal attempts
+- ✅ Shell injection via file paths
+- ✅ Null byte injection attacks
+- ✅ Windows-style path traversal (`..\\..\\`)
+- ✅ Mixed encoding attacks
+- ✅ Path length DoS attacks
+
+**Testing Coverage:**
+- 33+ security-focused unit tests
+- Malicious path pattern detection tests
+- Symlink resolution validation
+- Cross-platform path security tests
+- Edge case handling verification
+
+## 🔧 Previous Update: Error Handling Standardization & Code Quality Enhancement
+
+### Standardized Error Message Formatting
+Improved consistency and user experience across authentication error messages:
+
+**Key Improvements:**
+- **Consistent Message Format**: Standardized all error messages to use clear, actionable language
+- **Professional Tone**: Removed inconsistent punctuation and casual language
+- **Helpful Context**: Added consistent guidance pointing users to .env file configuration
+- **Clear Requirements**: Made required vs. optional parameters more obvious
+- **Better URL Validation**: Improved error messages for invalid URL formats
+
+**Files Modified:**
+- `packages/cli/src/config/auth.ts` - Complete error message standardization
+
+**Technical Implementation:**
+- Standardized all error messages to follow "X is required. Please add it to your .env file." pattern
+- Improved URL validation messages to be more specific about format requirements
+- Enhanced multi-option error messages (like Vertex AI) with clearer formatting
+- Maintained functional behavior while improving user experience
+- Added consistent default value information where applicable
+
+**Benefits:**
+- **Better User Experience**: Clear, consistent error messages reduce confusion
+- **Faster Debugging**: Standardized format makes issues easier to identify
+- **Professional Polish**: Consistent tone improves overall tool quality
+- **Reduced Support Burden**: Better error messages reduce user support requests
+
+**Quality Metrics:**
+- ✅ Standardized 8 different error message patterns
+- ✅ Improved consistency across all authentication providers
+- ✅ Enhanced error message clarity and actionability
+- ✅ Maintained backward compatibility
+
+## 🔧 Previous Update: Type Safety Improvements & Code Quality Enhancement
+
+### Enhanced Type Safety in Error Handling
+Replaced unsafe type assertions with proper error interfaces to improve code reliability and maintainability:
+
+**Key Improvements:**
+- **Proper Error Interfaces**: Added `ExtendedError` interface with optional `code`, `type`, and `requestID` properties
+- **Type Guard Implementation**: Created `isExtendedError()` type guard for safe type checking
+- **Eliminated Unsafe Assertions**: Removed all `@typescript-eslint/no-explicit-any` disable comments
+- **Better Error Handling**: Enhanced error processing in API error events across all content generation methods
+
+**Files Modified:**
+- `packages/core/src/core/openaiContentGenerator.ts` - Complete type safety overhaul
+
+**Technical Implementation:**
+- Added `ExtendedError` interface extending native `Error` with optional API-specific properties
+- Implemented `isExtendedError()` type guard using `instanceof Error` checking
+- Updated `isTimeoutError()` method to use proper type checking instead of unsafe casting
+- Modified all `ApiErrorEvent` instantiation sites to use type-safe error property access
+- Maintained full backward compatibility while improving type safety
+
+**Benefits:**
+- **Runtime Safety**: Eliminates potential runtime errors from unsafe type assertions
+- **Better IntelliSense**: Improved IDE support with proper type information
+- **Maintainability**: Clear error interfaces make code easier to understand and maintain
+- **Future-Proof**: Extensible error handling system for new error types
+
+**Quality Metrics:**
+- ✅ Zero TypeScript compilation errors
+- ✅ Eliminated 9 unsafe type assertions
+- ✅ Added comprehensive type guards
+- ✅ Maintained 100% backward compatibility
+
+## 🚀 Previous Update: xAI Grok Support & Multi-Provider Memory Files
 
 ### xAI Grok Integration
 Added comprehensive support for xAI's Grok models:

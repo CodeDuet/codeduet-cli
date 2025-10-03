@@ -28,6 +28,18 @@ import {
 import OpenAI from 'openai';
 import { logApiError, logApiResponse } from '../telemetry/loggers.js';
 import { ApiErrorEvent, ApiResponseEvent } from '../telemetry/types.js';
+
+// Error interfaces for proper type safety
+interface ExtendedError extends Error {
+  code?: string;
+  type?: string;
+  requestID?: string;
+}
+
+// Type guard to check if error has extended properties
+function isExtendedError(error: unknown): error is ExtendedError {
+  return error instanceof Error;
+}
 import { Config } from '../config/config.js';
 import { openaiLogger } from '../utils/openaiLogger.js';
 import { safeJsonParse } from '../utils/safeJsonParse.js';
@@ -172,10 +184,10 @@ export class OpenAIContentGenerator implements ContentGenerator {
       error instanceof Error
         ? error.message.toLowerCase()
         : String(error).toLowerCase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const errorCode = (error as any)?.code;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const errorType = (error as any)?.type;
+    
+    const extendedError = isExtendedError(error) ? error : null;
+    const errorCode = extendedError?.code;
+    const errorType = extendedError?.type;
 
     // Check for common timeout indicators
     return (
@@ -193,6 +205,100 @@ export class OpenAIContentGenerator implements ContentGenerator {
       errorMessage.includes('request timed out') ||
       errorMessage.includes('deadline exceeded')
     );
+  }
+
+  /**
+   * Handle timeout errors with consistent logging, error events, and enhanced error messages
+   */
+  private handleTimeoutError(
+    error: unknown,
+    durationMs: number,
+    userPromptId: string,
+    createParams: Parameters<typeof this.client.chat.completions.create>[0],
+    context: 'request' | 'streaming' | 'streaming-setup',
+    request: GenerateContentParameters,
+  ): void {
+    const isTimeoutError = this.isTimeoutError(error);
+    
+    // Create context-specific timeout messages
+    const timeoutMessages = {
+      request: `Request timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`,
+      streaming: `Streaming request timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`,
+      'streaming-setup': `Streaming setup timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`,
+    };
+
+    const errorMessage = isTimeoutError
+      ? timeoutMessages[context]
+      : error instanceof Error
+        ? error.message
+        : String(error);
+
+    // Log API error event for UI telemetry
+    const extendedError = isExtendedError(error) ? error : null;
+    const errorEvent = new ApiErrorEvent(
+      extendedError?.requestID || 'unknown',
+      this.model,
+      errorMessage,
+      durationMs,
+      userPromptId,
+      this.contentGeneratorConfig.authType,
+      extendedError?.type,
+      extendedError?.code,
+    );
+    logApiError(this.config, errorEvent);
+
+    // Log error interaction if enabled
+    if (this.contentGeneratorConfig.enableOpenAILogging) {
+      openaiLogger.logInteraction(createParams, undefined, error as Error);
+    }
+
+    // Allow subclasses to suppress error logging for specific scenarios
+    if (!this.shouldSuppressErrorLogging(error, request)) {
+      const contextMessages = {
+        request: 'OpenAI API Error:',
+        streaming: 'OpenAI API Streaming Error:',
+        'streaming-setup': 'OpenAI API Streaming Error:',
+      };
+      console.error(contextMessages[context], errorMessage);
+    }
+
+    // Provide helpful timeout-specific error message with context-specific troubleshooting
+    if (isTimeoutError) {
+      const troubleshootingTips = {
+        request: [
+          'Reduce input length or complexity',
+          'Increase timeout in config: contentGenerator.timeout',
+          'Check network connectivity',
+          'Consider using streaming mode for long responses',
+        ],
+        streaming: [
+          'Reduce input length or complexity',
+          'Increase timeout in config: contentGenerator.timeout',
+          'Check network stability for streaming connections',
+          'Consider using non-streaming mode for very long inputs',
+        ],
+        'streaming-setup': [
+          'Reduce input length or complexity',
+          'Increase timeout in config: contentGenerator.timeout',
+          'Check network connectivity and firewall settings',
+          'Consider using non-streaming mode for very long inputs',
+        ],
+      };
+
+      const contextTitles = {
+        request: 'Troubleshooting tips:',
+        streaming: 'Streaming timeout troubleshooting:',
+        'streaming-setup': 'Streaming setup timeout troubleshooting:',
+      };
+
+      const tips = troubleshootingTips[context]
+        .map(tip => `- ${tip}`)
+        .join('\n');
+
+      throw new Error(`${errorMessage}\n\n${contextTitles[context]}\n${tips}`);
+    }
+
+    throw error;
   }
 
   private isOpenRouterProvider(): boolean {
@@ -305,56 +411,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
       return response;
     } catch (error) {
       const durationMs = Date.now() - startTime;
-
-      // Identify timeout errors specifically
-      const isTimeoutError = this.isTimeoutError(error);
-      const errorMessage = isTimeoutError
-        ? `Request timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`
-        : error instanceof Error
-          ? error.message
-          : String(error);
-
-      // Log API error event for UI telemetry
-      const errorEvent = new ApiErrorEvent(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).requestID || 'unknown',
-        this.model,
-        errorMessage,
-        durationMs,
-        userPromptId,
-        this.contentGeneratorConfig.authType,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).type,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).code,
-      );
-      logApiError(this.config, errorEvent);
-
-      // Log error interaction if enabled
-      if (this.contentGeneratorConfig.enableOpenAILogging) {
-        await openaiLogger.logInteraction(
-          createParams,
-          undefined,
-          error as Error,
-        );
-      }
-
-      // Allow subclasses to suppress error logging for specific scenarios
-      if (!this.shouldSuppressErrorLogging(error, request)) {
-        console.error('OpenAI API Error:', errorMessage);
-      }
-
-      // Provide helpful timeout-specific error message
-      if (isTimeoutError) {
-        throw new Error(
-          `${errorMessage}\n\nTroubleshooting tips:\n` +
-            `- Reduce input length or complexity\n` +
-            `- Increase timeout in config: contentGenerator.timeout\n` +
-            `- Check network connectivity\n` +
-            `- Consider using streaming mode for long responses`,
-        );
-      }
-
+      this.handleTimeoutError(error, durationMs, userPromptId, createParams, 'request', request);
+      // handleTimeoutError always throws, this line is unreachable but needed for TypeScript
       throw error;
     }
   }
@@ -419,99 +477,15 @@ export class OpenAIContentGenerator implements ContentGenerator {
           }
         } catch (error) {
           const durationMs = Date.now() - startTime;
-
-          // Identify timeout errors specifically for streaming
-          const isTimeoutError = this.isTimeoutError(error);
-          const errorMessage = isTimeoutError
-            ? `Streaming request timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`
-            : error instanceof Error
-              ? error.message
-              : String(error);
-
-          // Log API error event for UI telemetry
-          const errorEvent = new ApiErrorEvent(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (error as any).requestID || 'unknown',
-            this.model,
-            errorMessage,
-            durationMs,
-            userPromptId,
-            this.contentGeneratorConfig.authType,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (error as any).type,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (error as any).code,
-          );
-          logApiError(this.config, errorEvent);
-
-          // Log error interaction if enabled
-          if (this.contentGeneratorConfig.enableOpenAILogging) {
-            await openaiLogger.logInteraction(
-              createParams,
-              undefined,
-              error as Error,
-            );
-          }
-
-          // Provide helpful timeout-specific error message for streaming
-          if (isTimeoutError) {
-            throw new Error(
-              `${errorMessage}\n\nStreaming timeout troubleshooting:\n` +
-                `- Reduce input length or complexity\n` +
-                `- Increase timeout in config: contentGenerator.timeout\n` +
-                `- Check network stability for streaming connections\n` +
-                `- Consider using non-streaming mode for very long inputs`,
-            );
-          }
-
-          throw error;
+          this.handleTimeoutError(error, durationMs, userPromptId, createParams, 'streaming', request);
         }
       }.bind(this);
 
       return wrappedGenerator();
     } catch (error) {
       const durationMs = Date.now() - startTime;
-
-      // Identify timeout errors specifically for streaming setup
-      const isTimeoutError = this.isTimeoutError(error);
-      const errorMessage = isTimeoutError
-        ? `Streaming setup timeout after ${Math.round(durationMs / 1000)}s. Try reducing input length or increasing timeout in config.`
-        : error instanceof Error
-          ? error.message
-          : String(error);
-
-      // Log API error event for UI telemetry
-      const errorEvent = new ApiErrorEvent(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).requestID || 'unknown',
-        this.model,
-        errorMessage,
-        durationMs,
-        userPromptId,
-        this.contentGeneratorConfig.authType,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).type,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error as any).code,
-      );
-      logApiError(this.config, errorEvent);
-
-      // Allow subclasses to suppress error logging for specific scenarios
-      if (!this.shouldSuppressErrorLogging(error, request)) {
-        console.error('OpenAI API Streaming Error:', errorMessage);
-      }
-
-      // Provide helpful timeout-specific error message for streaming setup
-      if (isTimeoutError) {
-        throw new Error(
-          `${errorMessage}\n\nStreaming setup timeout troubleshooting:\n` +
-            `- Reduce input length or complexity\n` +
-            `- Increase timeout in config: contentGenerator.timeout\n` +
-            `- Check network connectivity and firewall settings\n` +
-            `- Consider using non-streaming mode for very long inputs`,
-        );
-      }
-
+      this.handleTimeoutError(error, durationMs, userPromptId, createParams, 'streaming-setup', request);
+      // handleTimeoutError always throws, this line is unreachable but needed for TypeScript
       throw error;
     }
   }
